@@ -43,20 +43,26 @@
         }
 
         button {
-            display: inline-block;
+            cursor: pointer;
+            display: block;
             min-height: 36px;
-            min-width: 110px;
+            min-width: 100px;
             border: 0;
-            background-color: transparent;
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 5px;
             font-family: system-ui;
             cursor: pointer;
-            font-size: 20px;
+            font-size: 12px;
             border-radius: 10px;
             text-align: left;
+            margin-top: 5px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            text-align: center;
         }
 
         button:hover {
-            background-color: #3CC753;
+            background-color: #3cc75375;
         }
 
         #toolbar {
@@ -84,7 +90,6 @@
             font-family: system-ui;
             /* text-align: center; */
             z-index: 20;
-            font-size: 20px;
         }
 
         #toolbar>span {
@@ -105,21 +110,13 @@
 <body>  
     <span id="toolbar">
         <button id="ctrl" title="Play / Pause / Replay" alt="Play / Pause / Replay">pause</button>
-        <hr />
         <button id="reset" title="Reset Text" alt="Reset Text">undo</button>
-        <hr />
         <button id="zoom-down" title="- Zoom" alt="- Zoom">zoom -</button>
-        <hr />
         <button id="zoom-up" title="+ Zoom" alt="+ Zoom">zoom +</button>
-        <hr />
         <button id="kerning-down" title="- Kerning" alt="- Kerning">kerning -</button>
-        <hr />
         <button id="kerning-up" title="+ Kerning" alt="+ Kerning">kerning +</button>
-        <hr />
         <button id="line-down" title="- Line Height" alt="- Line Height">line +</button>
-        <hr />
         <button id="line-up" title="+ Line Height" alt="+ Line Height">line -</button>
-        <hr />
         <button id="ffw" title="Skip">skip</button>
     </span>
     <canvas id="c"></canvas>

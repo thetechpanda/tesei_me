@@ -541,11 +541,11 @@ const mainLoop = _ => requestAnimationFrame(() => {
 // setups ui controls
 controlButton.addEventListener('mouseup', _ => {
     console.debug("button clicked")
-    if (controlButton.innerText === "pause") {
+    if (controlButton.innerText.toLocaleLowerCase() === "pause") {
         console.debug("pausing")
         context.paused = true
         controlButton.innerText = "play"
-    } else if (controlButton.innerText === "play") {
+    } else if (controlButton.innerText.toLocaleLowerCase() === "play") {
         console.debug("playing")
         context.paused = false
         controlButton.innerText = "pause"
