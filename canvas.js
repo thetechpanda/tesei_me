@@ -59,8 +59,8 @@ const fastForwardButton = document.getElementById('ffw')
 let font = window.BitmapFont || false
 
 function terminate(msg) {
-    canvas.width = window.innerWidth - 20;
-    canvas.height = window.innerHeight - 50;
+    canvas.width = scr.width() - 20;
+    canvas.height = scr.height() - 50;
     ctx.font = '50px courier new'
     ctx.fillStyle = "red"
     let dangerText = msg
@@ -74,12 +74,31 @@ if (font === false) {
     terminate("font.js not loaded, abort")
 }
 
+// const zeroY = window.scrollY
+
+/**
+ * unified screen info, forseening issues supporting all browsers.
+ */
+const scr = {
+    width() {
+        return document.body.getBoundingClientRect().width
+    },
+    height() {
+        return document.body.getBoundingClientRect().height
+    },
+    scrollY() {
+        return window.scrollY
+    },
+    scrollX() {
+        return window.scrollX
+    }
+}
 
 /**
  * glyph is the current glyph configuration for the renderer
  */
 const glyph = (() => {
-    [size, kerning, height] = [1.50, 0, 3]
+    [size, kerning, height] = [.9, 0, 3]
     const g = {
         /**
          * pixelSize is the width and height of the letters as represented in the font.
@@ -219,8 +238,8 @@ for (let token of tokens) {
  * sets play button text and hides fast worward
  */
 const resetPlayButton = () => {
-    controlButton.innerText = "▶"
-    fastForwardButton.style.visibility = 'hidden';
+    controlButton.innerText = "play"
+    fastForwardButton.style.display = 'none';
 }
 
 /**
@@ -289,16 +308,16 @@ const context = {
         glyph.charHeight = 8 * glyph.zoom + glyph.lineHeight
 
         var printedLines = this.tokens.filter((v, i) => v == tags.EOL && i < this.cursor).length + 5
-        canvas.height = Math.max(printedLines * glyph.charHeight, window.innerHeight)
+        canvas.height = Math.max(printedLines * glyph.charHeight, scr.height())
         if (context.paused == false && context.tokens.length > context.cursor) {
-            window.scrollTo(0, canvas.height)
+            window.scrollTo(0, Math.max(scr.scrollY(), canvas.height))
         }
         let maxW = (glyph.maxColumns * glyph.charWitdh) + context.origX
-        let wW = window.innerWidth - 20 // why is it 20? magic number.
+        let wW = scr.width() - 20 // why is it 20? magic number.
         canvas.width = Math.max(maxW, wW)
         if (wW > maxW) {
             let pad = ((wW - maxW) / 2)
-            context.origX = pad
+            context.origX = Math.min(5, pad)
         } else {
             context.origX = 5
         }
@@ -407,17 +426,19 @@ const context = {
      */
     printHUD() {
         // glyph information
-        let status = context.paused || context.cursor >= context.tokens.length ? "⏸" : "▶"
+        let status = context.paused || context.cursor >= context.tokens.length ? "pause" : "play"
         ctx.fillStyle = "black"
-        ctx.fillRect(0, 0, canvas.width + 100, 20 + window.scrollY)
-        ctx.font = "12pt 'courier new'";
+        ctx.fillRect(0, scr.scrollY(), canvas.width + 100, 20)
+        ctx.font = "8pt 'courier new'";
         ctx.fillStyle = "white"
         ctx.fillText(
             (new Date).toLocaleString() + " = " +
-            "ZOOM: " + glyph.zoom.toFixed(2) + "x " +
-            "KERNING: " + glyph.kerning.toFixed(2) + "x " +
-            "L.HEIGHT: " + glyph.lineHeight.toFixed(2) + "x",
-            10, 13 + window.scrollY)
+            "zoom: " + glyph.zoom.toFixed(2) + "x " +
+            "kerning: " + glyph.kerning.toFixed(2) + "x " +
+            "height: " + glyph.lineHeight.toFixed(2) + "x " +
+            "scroll: " + scr.scrollY().toFixed(2) + " " +
+            "W x H: " + scr.width().toFixed(2) + " x " + scr.height().toFixed(2) + " "
+            , 10, 13 + scr.scrollY())
         if (context.state.status_blink_show === undefined) {
             context.state.status_blink_show = true
         }
@@ -429,9 +450,9 @@ const context = {
         }
         if (context.state.status_blink_show) {
             // play status
-            ctx.font = "50px 'courier new'";
+            ctx.font = "20px 'courier new'";
             ctx.fillStyle = "green"
-            ctx.fillText(status, (window.innerWidth - window.scrollX) - 50, context.origY + 30 + window.scrollY)
+            ctx.fillText(status, (scr.width() - scr.scrollX()) - 200, context.origY + 30 + scr.scrollY())
         }
     },
     /**
@@ -453,8 +474,8 @@ const context = {
         }
         if (context.paused || context.cursor >= context.tokens.length) {
             if (context.cursor >= context.tokens.length) {
-                controlButton.innerText = "▶"
-                fastForwardButton.style.visibility = 'hidden';
+                controlButton.innerText = "play"
+                fastForwardButton.style.display = 'none';
             }
             context.printHUD()
             return false
@@ -520,67 +541,83 @@ const mainLoop = _ => requestAnimationFrame(() => {
 // setups ui controls
 controlButton.addEventListener('mouseup', _ => {
     console.debug("button clicked")
-    if (controlButton.innerText === "⏸") {
+    if (controlButton.innerText === "pause") {
         console.debug("pausing")
         context.paused = true
-        controlButton.innerText = "▶"
-    } else if (controlButton.innerText === "▶") {
+        controlButton.innerText = "play"
+    } else if (controlButton.innerText === "play") {
         console.debug("playing")
         context.paused = false
-        controlButton.innerText = "⏸"
+        controlButton.innerText = "pause"
         if (context.cursor >= context.tokens.length) {
             context.cursor = 0
             window.scrollTo(0, 0)
         }
-        fastForwardButton.style.visibility = 'visible';
+        fastForwardButton.style.display = 'inline-block';
     }
 })
-document.getElementById('zoom-up').addEventListener('mouseup', function () {
-    glyph.zoom += .25
-})
 
-document.getElementById('zoom-down').addEventListener('mouseup', function () {
-    glyph.zoom -= .25
-})
-document.getElementById('kerning-up').addEventListener('mouseup', function () {
-    glyph.kerning += .25
-})
-document.getElementById('kerning-down').addEventListener('mouseup', function () {
-    glyph.kerning -= .25
-})
-document.getElementById('line-up').addEventListener('mouseup', function () {
-    glyph.lineHeight += .25
-})
-document.getElementById('line-down').addEventListener('mouseup', function () {
-    glyph.lineHeight -= .25
-})
-document.getElementById('reset').addEventListener('mouseup', function () {
-    glyph.reset()
-})
-
-fastForwardButton.addEventListener('click', _ => {
-    fastForwardButton.style.visibility = 'hidden';
-    controlButton.innerText = "▶"
-    context.cursor = context.tokens.length
-    context.paused = false
-    requestAnimationFrame(_ => {
-        window.scrollTo(0, window.outerHeight)
-    })
-
-})
+const glyphCtl = {
+    zoomUp() {
+        glyph.zoom += .25
+    },
+    zoomDown() {
+        glyph.zoom -= .25
+    },
+    kerningUp() {
+        glyph.kerning += .25
+    },
+    kerningDown() {
+        glyph.kerning -= .25
+    },
+    lineUp() {
+        glyph.lineHeight += .25
+    },
+    lineDown() {
+        glyph.lineHeight -= .25
+    },
+    ffw() {
+        debugger
+        fastForwardButton.style.display = 'none';
+        controlButton.innerText = "play"
+        context.cursor = context.tokens.length
+        context.paused = false
+        requestAnimationFrame(_ => {
+            window.scrollTo(0, scr.scrollY())
+        })
+    }
+}
+document.getElementById('zoom-up').addEventListener('mouseup', glyphCtl.zoomUp)
+document.getElementById('zoom-up').addEventListener('touchend', glyphCtl.zoomUp)
+document.getElementById('zoom-down').addEventListener('mouseup', glyphCtl.zoomDown)
+document.getElementById('zoom-down').addEventListener('touchend', glyphCtl.zoomDown)
+document.getElementById('kerning-up').addEventListener('mouseup', glyphCtl.kerningUp)
+document.getElementById('kerning-up').addEventListener('touchend', glyphCtl.kerningUp)
+document.getElementById('kerning-down').addEventListener('mouseup', glyphCtl.kerningDown)
+document.getElementById('kerning-down').addEventListener('touchend', glyphCtl.kerningDown)
+document.getElementById('line-up').addEventListener('mouseup', glyphCtl.lineUp)
+document.getElementById('line-up').addEventListener('touchend', glyphCtl.lineUp)
+document.getElementById('line-down').addEventListener('mouseup', glyphCtl.lineDown)
+document.getElementById('line-down').addEventListener('touchend', glyphCtl.lineDown)
+document.getElementById('reset').addEventListener('mouseup', glyph.reset)
+document.getElementById('reset').addEventListener('touchend', glyph.reset)
+console.log(fastForwardButton)
+fastForwardButton.addEventListener('click', glyphCtl.ffw)
+fastForwardButton.addEventListener('touchend', glyphCtl.ffw)
 
 // controls initial state
 if (context.cursor >= context.tokens.length) {
     context.cursor = 0
     window.scrollTo(0, 0)
 }
-fastForwardButton.style.visibility = 'visible';
+
 
 // start rendering
 if (qs.get("paused") !== null) {
     context.paused = true
-    controlButton.innerText = "▶"
-} 
+    controlButton.innerText = "play"
+    fastForwardButton.style.display = 'inline-block';
+}
 
 // start rendering
 mainLoop()
