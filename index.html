@@ -31,70 +31,18 @@
             padding: 0;
             background-color: #2C2C2C;
             width: 100%;
-            height: 100vh;
+            height: 100vh; 
         }
 
         canvas {
-            margin-left: 110px;
             display: block;
-            position: relative;
+            position: absolute;
+            top:0;
+            left: 0;
             z-index: 99;
-            margin-bottom: 50px;
+            margin:0px auto;
         }
 
-        button {
-            cursor: pointer;
-            display: block;
-            min-height: 36px;
-            min-width: 100px;
-            border: 0;
-            background-color: rgba(0, 0, 0, 0.3);
-            padding: 5px;
-            font-family: system-ui;
-            cursor: pointer;
-            font-size: 12px;
-            border-radius: 10px;
-            text-align: left;
-            margin-top: 5px;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-            text-align: center;
-        }
-
-        button:hover {
-            background-color: #3cc75375;
-        }
-
-        #toolbar {
-            position: fixed;
-            display: block;
-            height: 100vh;
-            top: 200;
-            width: 100px;
-            background-color: #2C2C2C;
-            z-index: 30;
-            padding-top: 48px;
-        }
-
-        hr {
-            border: 1px dashed gray;
-        }
-
-        #toolbar,
-        #toolbar>* {
-            -webkit-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-            color: whitesmoke;
-            font-weight: bolder;
-            font-family: system-ui;
-            /* text-align: center; */
-            z-index: 20;
-        }
-
-        #toolbar>span {
-            display: inline-block;
-        }
         pre {
             margin-left: 15vw;
             width: 70vw;
@@ -108,17 +56,6 @@
 </head>
 
 <body>  
-    <span id="toolbar">
-        <button id="ctrl" title="Play / Pause / Replay" alt="Play / Pause / Replay">pause</button>
-        <button id="reset" title="Reset Text" alt="Reset Text">undo</button>
-        <button id="zoom-down" title="- Zoom" alt="- Zoom">zoom -</button>
-        <button id="zoom-up" title="+ Zoom" alt="+ Zoom">zoom +</button>
-        <button id="kerning-down" title="- Kerning" alt="- Kerning">kerning -</button>
-        <button id="kerning-up" title="+ Kerning" alt="+ Kerning">kerning +</button>
-        <button id="line-down" title="- Line Height" alt="- Line Height">line +</button>
-        <button id="line-up" title="+ Line Height" alt="+ Line Height">line -</button>
-        <button id="ffw" title="Skip">skip</button>
-    </span>
     <canvas id="c"></canvas>
     <main aria-labelledby="source-code-block">
         <h2 id="source-code-block">If you read this, javascript is disabled in your browser</h2>

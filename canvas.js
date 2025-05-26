@@ -1,7 +1,7 @@
 // "use strict";
 // LICENSE: GPL-v2.0
 
-let ready = false
+var ready = false
 
 const qs = (new URLSearchParams(window.location.search))
 
@@ -46,15 +46,6 @@ const canvas = document.getElementById('c');
  */
 const ctx = canvas.getContext('2d');
 
-/**
- * @type {HTMLElement}
- */
-const controlButton = document.getElementById('ctrl')
-/**
- * @type {HTMLElement}
- */
-const fastForwardButton = document.getElementById('ffw')
-
 /** @type {FontMap8x8} */
 let font = window.BitmapFont || false
 
@@ -90,7 +81,7 @@ const scr = {
         return window.scrollY
     },
     scrollX() {
-        return window.scrollX
+        return window.scrollX 
     }
 }
 
@@ -98,13 +89,13 @@ const scr = {
  * glyph is the current glyph configuration for the renderer
  */
 const glyph = (() => {
-    [size, kerning, height] = [.9, 0, 3]
+    let [zoom, kerning, height] = [1.5, -0.5, 2.5]
     const g = {
         /**
          * pixelSize is the width and height of the letters as represented in the font.
          * see below.
          */
-        zoom: size,
+        zoom: zoom,
         /**
          * keyring is the spacing between letters.
          */
@@ -116,11 +107,11 @@ const glyph = (() => {
         /**
          * width of each character.
          */
-        charWitdh: 8 * size + kerning,
+        charWitdh: 8 * zoom + kerning,
         /**
          * height of each character.
          */
-        charHeight: 8 * size + height,
+        charHeight: 8 * zoom + height,
         /**
          * max column length.
          */
@@ -133,11 +124,11 @@ const glyph = (() => {
          * resets the glyph to its original configuration
          */
         reset() {
-            g.zoom = size
+            g.zoom = zoom
             g.kerning = kerning
             g.lineHeight = height
-            g.charWitdh = 8 * size + kerning
-            g.charHeight = 8 * size + height
+            g.charWitdh = 8 * zoom + kerning
+            g.charHeight = 8 * zoom + height
         }
     }
     return g
@@ -235,14 +226,6 @@ for (let token of tokens) {
 }
 
 /**
- * sets play button text and hides fast worward
- */
-const resetPlayButton = () => {
-    controlButton.innerText = "play"
-    fastForwardButton.style.display = 'none';
-}
-
-/**
  * true if token is a printable token and not a tag
  */
 const isPrintable = (token) => {
@@ -262,6 +245,15 @@ const isPrintable = (token) => {
  * context controls the canvas and keeps track of what's displayed and what's not
  */
 const context = {
+    fps: 120,
+    tsFPS: (new Date).getTime(),
+    tsBlinker: (new Date).getTime(),
+    visBlinker: false,
+    mouse: {
+        x: 0, y: 0, down: false, last: 0,
+        timeout() { return (new Date).getTime() - context.mouse.last < 350 },
+        risen() { context.mouse.last = (new Date).getTime() }
+    },
     /**
      * cursor porition relative to the tokens
      * @type {number}
@@ -285,7 +277,7 @@ const context = {
      * origin y
      * @type {number}
      */
-    origY: 20,
+    origY: 45,
     /**
      * current x position
      * @type {number}
@@ -301,7 +293,7 @@ const context = {
      */
     state: {},
     /**
-     * updates glyph (in case they have changed.)
+     * updates canvas
      */
     updateCanvas() {
         glyph.charWitdh = 8 * glyph.zoom + glyph.kerning
@@ -309,9 +301,6 @@ const context = {
 
         var printedLines = this.tokens.filter((v, i) => v == tags.EOL && i < this.cursor).length + 5
         canvas.height = Math.max(printedLines * glyph.charHeight, scr.height())
-        if (context.paused == false && context.tokens.length > context.cursor) {
-            window.scrollTo(0, Math.max(scr.scrollY(), canvas.height))
-        }
         let maxW = (glyph.maxColumns * glyph.charWitdh) + context.origX
         let wW = scr.width() - 20 // why is it 20? magic number.
         canvas.width = Math.max(maxW, wW)
@@ -344,19 +333,19 @@ const context = {
         ctx.fillRect(x, y, w, h);
     },
     /**
-     * draws a token on the canvas
+     * draws a string token on the canvas
      * @param {string} token string to print
      * @param {number} x 
      * @param {number} y 
      * @param {HTMLColor} color fill style for 2d context
      * @returns 
      */
-    drawToken(token, x, y, color) {
+    drawToken(token, x, y, color, zoom = glyph.zoom, charWidth = glyph.charWitdh) {
         // metrics()
         if (!token || !token.split) {
             return
         }
-        let advance = x + (token.length * glyph.charWitdh)
+        let advance = x + (token.length * charWidth)
         token = token.split("")
         let [row, col, bmp] = [0, 0, null]
         const next = () => {
@@ -372,13 +361,13 @@ const context = {
         const draw = () => {
             let bits = bmp[row];
             if ((bits >> (7 - col)) & 1) {
-                let cx = x + col * glyph.zoom
-                let cy = y + row * glyph.zoom
+                let cx = x + col * zoom
+                let cy = y + row * zoom
                 context.drawRect(
                     cx,
                     cy,
-                    glyph.zoom,
-                    glyph.zoom,
+                    zoom,
+                    zoom,
                     color
                 );
             }
@@ -393,11 +382,47 @@ const context = {
             let curr = token.shift()
             bmp = font[curr]
             draw()
-            x += glyph.charWitdh;
+            x += charWidth;
             nextCharacter()
         }
         nextCharacter()
         return advance
+    },
+    drawButton(text = '', x, y, w, h, bg = '', fg = '', border = '', radius = 0, font = '') {
+        // rounded rectangle path
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + w - radius, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+        ctx.lineTo(x + w, y + h - radius);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+        ctx.lineTo(x + radius, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+
+        // fill background
+        ctx.fillStyle = bg;
+        ctx.fill();
+
+        // draw border
+        if (border) {
+            ctx.strokeStyle = border;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        // draw text
+        if (fg) {
+            ctx.fillStyle = fg;
+        }
+        if (font) {
+            ctx.font = font;
+        }
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, x + w / 2, y + h / 2);
     },
     /**
      * writes a token to the canvas, updates context's coordinates
@@ -421,24 +446,31 @@ const context = {
                 context.x = context.drawToken(token, context.x, context.y, color)
         }
     },
+    collision(x, y, w, h) {
+        let [m, x1, y1] = [context.mouse, x + w, y + h]
+        let [r, l] = [Math.abs(m.x - x), Math.abs(m.x - x1)]
+        let [collistion, pos] = [m.down && (m.x > x && m.x < x1 && m.y > y && m.y < y1), (l > r) ? -1 : Math.abs(l - r) > 30 ? 1 : 0]
+        return [!m.timeout() && collistion, collistion ? pos : undefined /* invalid value */]
+    },
     /**
      * prints HUD on the canvas
      */
     printHUD() {
         // glyph information
-        let status = context.paused || context.cursor >= context.tokens.length ? "pause" : "play"
+        let status = context.paused || context.cursor >= context.tokens.length ? "paused" : "playing"
         ctx.fillStyle = "black"
-        ctx.fillRect(0, scr.scrollY(), canvas.width + 100, 20)
-        ctx.font = "8pt 'courier new'";
+        let scrollY = scr.scrollY() + document.body.scrollTop
+        ctx.fillRect(0, scrollY, scr.scrollX() + window.outerWidth, 60)
+        ctx.font = "20px 'courier new'";
         ctx.fillStyle = "white"
         ctx.fillText(
             (new Date).toLocaleString() + " = " +
             "zoom: " + glyph.zoom.toFixed(2) + "x " +
             "kerning: " + glyph.kerning.toFixed(2) + "x " +
             "height: " + glyph.lineHeight.toFixed(2) + "x " +
-            "scroll: " + scr.scrollY().toFixed(2) + " " +
+            "scroll: " + scrollY.toFixed(2) + " " +
             "W x H: " + scr.width().toFixed(2) + " x " + scr.height().toFixed(2) + " "
-            , 10, 13 + scr.scrollY())
+            , 10, 20 + scrollY)
         if (context.state.status_blink_show === undefined) {
             context.state.status_blink_show = true
         }
@@ -450,10 +482,123 @@ const context = {
         }
         if (context.state.status_blink_show) {
             // play status
-            ctx.font = "20px 'courier new'";
+            ctx.font = "bold 20px 'courier new'";
             ctx.fillStyle = "green"
-            ctx.fillText(status, (scr.width() - scr.scrollX()) - 200, context.origY + 30 + scr.scrollY())
+            let [cx, cy] = [(scr.width() + scr.scrollX()) - 170, 30 + scrollY]
+            context.drawToken(status.toUpperCase(), cx, cy, "green", 3, 8 * 2.5)
         }
+
+        const boxes = { "play": 120, "skip": 120, "reset": 120, "zoom": 140, "kerning": 175, "height": 160 }
+        let xbox = 25
+        for (let [box, w] of Object.entries(boxes)) {
+            let [x, y, h] = [xbox, scrollY + 35, 24]
+            let text = box
+            let [collide, touchPos] = context.collision(x, y, w, h)
+
+            const hl = (x, y, w, h, hl = undefined) => {
+                if (hl === undefined) {
+                    return
+                }
+                let [cx, cy, cw, ch] = [x, y, w, h]
+                let scale = 4
+                switch (hl) {
+                    case 1:
+                        cx += cw - cw / scale
+                    case -1:
+                        cw = cw / scale
+                        break
+                    case 0:
+                        break
+                    default:
+                        return
+                }
+                let ga = ctx.globalAlpha
+                ctx.globalAlpha = 0.8
+                context.drawRect(cx, cy, cw, ch, "green")
+                ctx.globalAlpha = ga
+
+            }
+
+            switch (box) {
+                case "zoom":
+                    if (collide) {
+                        if (touchPos == 1) {
+                            glyphCtl.zoomUp()
+                        } else if (touchPos == -1) {
+                            glyphCtl.zoomDown()
+                        }
+                    }
+                    text = `<  ${box}  >`
+                    break
+                case "kerning":
+                    if (collide) {
+                        if (touchPos == 1) {
+                            glyphCtl.kerningUp()
+                        } else if (touchPos == -1) {
+                            glyphCtl.kerningDown()
+                        }
+                    }
+                    text = `<  ${box}  >`
+                    break
+                case "height":
+                    if (collide) {
+                        if (touchPos == 1) {
+                            glyphCtl.lineUp()
+                        } else if (touchPos == -1) {
+                            glyphCtl.lineDown()
+                        }
+                    }
+                    text = `<  ${box}  >`
+                    break
+                case "play":
+                    if (collide) {
+                        glyphCtl.toggle()
+                    }
+                    text = !context.paused ? "pause" : "play"
+                    touchPos = touchPos === undefined ? undefined : 0
+                    break
+                case "skip":
+                    if (collide) {
+                        glyphCtl.ffw()
+                    }
+                    touchPos = touchPos === undefined ? undefined : 0
+                    break
+                case "reset": {
+                    if (collide) {
+                        glyph.reset()
+                    }
+                    touchPos = touchPos === undefined ? undefined : 0
+                    break
+                }
+            }
+            context.drawButton(text, x, y, w, h, 'black', "whitesmoke", '', 5, '18px "courier new"')
+            hl(x, y, w, h, touchPos)
+            console.log(touchPos)
+            ctx.fillStyle = "whitesmoke"
+            ctx.textAlign = "center"
+            ctx.font = '22px "courier new"'
+            xbox += w + 25
+            if (collide) {
+                context.mouse.risen()
+            }
+        }
+
+        if (context.mouse.down) {
+            ctx.fillStyle = "green"
+            ctx.globalAlpha = 0.1;
+            ctx.beginPath();
+            ctx.arc(context.mouse.x, context.mouse.y, 15, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.globalAlpha = 0.2;
+            ctx.beginPath();
+            ctx.arc(context.mouse.x, context.mouse.y, 10, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.globalAlpha = 0.5;
+            ctx.beginPath();
+            ctx.arc(context.mouse.x, context.mouse.y, 5, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
     },
     /**
      * advances shown frame not the next
@@ -473,11 +618,6 @@ const context = {
             }
         }
         if (context.paused || context.cursor >= context.tokens.length) {
-            if (context.cursor >= context.tokens.length) {
-                controlButton.innerText = "play"
-                fastForwardButton.style.display = 'none';
-            }
-            context.printHUD()
             return false
         }
         if (context.tokens[context.cursor]) {
@@ -492,7 +632,6 @@ const context = {
                 context.write(token, color)
             }
         }
-        context.printHUD()
         return true
     },
     /**
@@ -509,101 +648,92 @@ const context = {
             }
         }
         return 0
-    }
+    },
+    /**
+     * runs the main loop
+     * @returns {void}
+     */
+    main: () => requestAnimationFrame(() => {
+        ready = true
+        let now = (new Date).getTime()
+        let elapsed = now - context.tsFPS;
+        let interval = 1000 / context.fps
+        context.clear()
+        if (context.advanceFrame() === false) {
+            // prints cursor on the last known token
+            if ((now - context.tsBlinker) > 650) {
+                context.visBlinker = !context.visBlinker
+                context.tsBlinker = now
+            }
+            if (context.visBlinker) {
+                context.drawRect(context.x - context.textCursorLength(), context.y + glyph.charHeight + 5, context.textCursorLength(), 2, "green")
+                context.drawRect(context.x - context.textCursorLength(), context.y + glyph.charHeight + 3, context.textCursorLength(), 2, BACKGROUND_COLOR)
+                context.drawRect(context.x - context.textCursorLength(), context.y + glyph.charHeight + 1, context.textCursorLength(), 2, "green")
+            }
+        }
+        let nextThick = interval - elapsed
+        context.tsFPS = now
+        if (context.paused == false && context.tokens.length > context.cursor) {
+            // todo: fix this on mobile.
+            setTimeout(_ => { 
+                window.scrollTo(0, Math.max(scr.scrollY(), canvas.height)) 
+                context.printHUD()
+            }, 0)
+        }
+        context.printHUD()
+        setTimeout(context.main, nextThick > 0 ? nextThick : 0)
+    })
+
 }
 
-const now = _ => (new Date).getTime()
-let last = now()
-let seen = false
-
-/**
- * runs the main loop
- * @returns {void}
- */
-const mainLoop = _ => requestAnimationFrame(() => {
-    ready = true
-    context.clear()
-    if (context.advanceFrame() === false) {
-        // prints cursor on the last known token
-        if ((now() - last) > 650) {
-            seen = !seen
-            last = now()
-        }
-        if (seen) {
-            context.drawRect(context.x - context.textCursorLength(), context.y + glyph.charHeight + 5, context.textCursorLength(), 2, "green")
-            context.drawRect(context.x - context.textCursorLength(), context.y + glyph.charHeight + 3, context.textCursorLength(), 2, BACKGROUND_COLOR)
-            context.drawRect(context.x - context.textCursorLength(), context.y + glyph.charHeight + 1, context.textCursorLength(), 2, "green")
-        }
-    }
-    mainLoop()
-})
-
-// setups ui controls
-controlButton.addEventListener('mouseup', _ => {
-    console.debug("button clicked")
-    if (controlButton.innerText.toLocaleLowerCase() === "pause") {
-        console.debug("pausing")
-        context.paused = true
-        controlButton.innerText = "play"
-    } else if (controlButton.innerText.toLocaleLowerCase() === "play") {
-        console.debug("playing")
-        context.paused = false
-        controlButton.innerText = "pause"
-        if (context.cursor >= context.tokens.length) {
-            context.cursor = 0
-            window.scrollTo(0, 0)
-        }
-        fastForwardButton.style.display = 'inline-block';
-    }
-})
-
 const glyphCtl = {
-    zoomUp() {
+    zoomUp(ev) {
         glyph.zoom += .25
+        if (ev && ev.stopPropagation) { ev.stopPropagation() }
     },
-    zoomDown() {
+    zoomDown(ev) {
         glyph.zoom -= .25
+        if (ev && ev.stopPropagation) { ev.stopPropagation() }
     },
-    kerningUp() {
+    kerningUp(ev) {
         glyph.kerning += .25
+        if (ev && ev.stopPropagation) { ev.stopPropagation() }
     },
-    kerningDown() {
+    kerningDown(ev) {
         glyph.kerning -= .25
+        if (ev && ev.stopPropagation) { ev.stopPropagation() }
     },
-    lineUp() {
+    lineUp(ev) {
         glyph.lineHeight += .25
+        if (ev && ev.stopPropagation) { ev.stopPropagation() }
     },
-    lineDown() {
+    lineDown(ev) {
         glyph.lineHeight -= .25
+        if (ev && ev.stopPropagation) { ev.stopPropagation() }
     },
-    ffw() {
-        debugger
-        fastForwardButton.style.display = 'none';
-        controlButton.innerText = "play"
+    ffw(ev) {
         context.cursor = context.tokens.length
-        context.paused = false
+        context.paused = true
+        if (ev && ev.stopPropagation) { ev.stopPropagation() }
         requestAnimationFrame(_ => {
             window.scrollTo(0, scr.scrollY())
         })
+    },
+    toggle(ev) {
+        if (!context.paused) {
+            console.debug("pausing")
+            context.paused = true
+        } else {
+            console.debug("playing")
+            context.paused = false
+            if (context.cursor >= context.tokens.length) {
+                context.cursor = 0
+                window.scrollTo(0, 0)
+            }
+        }
+        if (ev && ev.stopPropagation) { ev.stopPropagation() }
     }
 }
-document.getElementById('zoom-up').addEventListener('mouseup', glyphCtl.zoomUp)
-document.getElementById('zoom-up').addEventListener('touchend', glyphCtl.zoomUp)
-document.getElementById('zoom-down').addEventListener('mouseup', glyphCtl.zoomDown)
-document.getElementById('zoom-down').addEventListener('touchend', glyphCtl.zoomDown)
-document.getElementById('kerning-up').addEventListener('mouseup', glyphCtl.kerningUp)
-document.getElementById('kerning-up').addEventListener('touchend', glyphCtl.kerningUp)
-document.getElementById('kerning-down').addEventListener('mouseup', glyphCtl.kerningDown)
-document.getElementById('kerning-down').addEventListener('touchend', glyphCtl.kerningDown)
-document.getElementById('line-up').addEventListener('mouseup', glyphCtl.lineUp)
-document.getElementById('line-up').addEventListener('touchend', glyphCtl.lineUp)
-document.getElementById('line-down').addEventListener('mouseup', glyphCtl.lineDown)
-document.getElementById('line-down').addEventListener('touchend', glyphCtl.lineDown)
-document.getElementById('reset').addEventListener('mouseup', glyph.reset)
-document.getElementById('reset').addEventListener('touchend', glyph.reset)
-console.log(fastForwardButton)
-fastForwardButton.addEventListener('click', glyphCtl.ffw)
-fastForwardButton.addEventListener('touchend', glyphCtl.ffw)
 
 // controls initial state
 if (context.cursor >= context.tokens.length) {
@@ -615,9 +745,35 @@ if (context.cursor >= context.tokens.length) {
 // start rendering
 if (qs.get("paused") !== null) {
     context.paused = true
-    controlButton.innerText = "play"
-    fastForwardButton.style.display = 'inline-block';
 }
 
 // start rendering
-mainLoop()
+context.main()
+
+const [move, down, up] = [
+    (ev) => {
+        context.mouse.x = ev.clientX + scr.scrollX()
+        context.mouse.y = ev.clientY + scr.scrollY()
+        ev.stopPropagation()
+    },
+    (ev) => {
+        context.mouse.x = ev.clientX + scr.scrollX()
+        context.mouse.y = ev.clientY + scr.scrollY()
+        context.mouse.down = true
+        ev.stopPropagation()
+    },
+    (ev) => {
+        context.mouse.x = ev.clientX + scr.scrollX()
+        context.mouse.y = ev.clientY + scr.scrollY()
+        context.mouse.down = false
+        ev.stopPropagation()
+    }
+]
+
+document.body.addEventListener('mousemove', move)
+document.body.addEventListener('mousedown', down)
+document.body.addEventListener('mouseup', up)
+
+document.body.addEventListener('touchmove', move)
+document.body.addEventListener('touchstart', down)
+document.body.addEventListener('touchend', up)
