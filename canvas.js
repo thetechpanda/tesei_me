@@ -238,9 +238,9 @@ class pointer {
             pointer = { x: ev.layerX, y: ev.layerY }
         }
         if (this.isStart(ev)) {
-            this.down = true
+            this.trigger = true
         } else if (this.isEnd(ev)) {
-            this.down = false
+            this.trigger = false
         } else {
             return
         }
@@ -556,6 +556,7 @@ const context = {
      * @returns {[]any} [ 0: collision - bool, 1: pos - number ]
      */
     collision(x, y, w, h) {
+        console.log(context.pointer.triggered())
         if (!context.pointer.triggered()) {
             return [false, undefined]
         }
@@ -721,11 +722,13 @@ const context = {
 
         if (context.clickDebug) {
             // debug mouse click
+            let text = context.pointer.x + ', ' + context.pointer.y + ' = ' + context.pointer.triggered()
+            let w = text.length * 10
             ctx.fillStyle = 'black'
-            ctx.fillRect(context.pointer.x - 30, context.pointer.y - 10, 60, 20)
+            ctx.fillRect(context.pointer.x - (w/2), context.pointer.y - 10, w, 20)
             ctx.fillStyle = 'yellow'
-            ctx.font = '10pt "courier new"'
-            ctx.fillText(context.pointer.x + ', ' + context.pointer.y, context.pointer.x, context.pointer.y)
+            ctx.font = '10px "courier new"'
+            ctx.fillText(text, context.pointer.x, context.pointer.y)
         }
 
     },
