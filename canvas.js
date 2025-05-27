@@ -3,6 +3,7 @@
 
 var ready = false
 
+
 const qs = (new URLSearchParams(window.location.search))
 
 /**
@@ -45,6 +46,7 @@ if (font === false) {
  * unified screen info, forseening issues supporting all browsers.
  */
 const scr = {
+    portrait: window.matchMedia("(orientation: portrait)").matches,
     width() {
         return document.body.getBoundingClientRect().width
     },
@@ -56,14 +58,23 @@ const scr = {
     },
     scrollX() {
         return window.scrollX
-    }
+    },
 }
+
+window.matchMedia("(orientation: portrait)").addEventListener("change", e => {
+    if (e.matches) {
+        scr.portrait = true
+    } else {
+        scr.portrait = false
+    }
+});
+
 
 /**
  * glyph is the current glyph configuration for the renderer
  */
 const glyph = (() => {
-    let [zoom, kerning, height] = [1.5, -0.5, 2.5]
+    let [zoom, kerning, height] = [1.5, -2.0, 4]
     const g = {
         /**
          * pixelSize is the width and height of the letters as represented in the font.
@@ -101,8 +112,11 @@ const glyph = (() => {
             g.zoom = zoom
             g.kerning = kerning
             g.lineHeight = height
-            g.charWitdh = 8 * zoom + kerning
-            g.charHeight = 8 * zoom + height
+            g.charWitdh = 8 * (scr.portrait ? zoom : zoom - .5) + kerning
+            g.charHeight = 8 * (scr.portrait ? zoom : zoom - .5) + height
+        },
+        getZoom() {
+            return (scr.portrait ? glyph.zoom : glyph.zoom - .5)
         }
     }
     return g
@@ -114,11 +128,11 @@ const glyph = (() => {
  */
 const glyphCtl = {
     zoomUp(ev) {
-        glyph.zoom += .25
+        glyph.zoom += .10
         if (ev && ev.stopPropagation) { ev.stopPropagation() }
     },
     zoomDown(ev) {
-        glyph.zoom -= .25
+        glyph.zoom -= .10
         if (ev && ev.stopPropagation) { ev.stopPropagation() }
     },
     kerningUp(ev) {
@@ -382,8 +396,8 @@ const context = {
      * updates canvas and clears screen
      */
     resetView() {
-        glyph.charWitdh = 8 * glyph.zoom + glyph.kerning
-        glyph.charHeight = 8 * glyph.zoom + glyph.lineHeight
+        glyph.charWitdh = 8 * glyph.getZoom() + glyph.kerning
+        glyph.charHeight = 8 * glyph.getZoom() + glyph.lineHeight
         var printedLines = this.tokens.filter((v, i) => v == tags.EOL && i < this.cursor).length + 5
         canvas.height = Math.max(printedLines * glyph.charHeight + context.origY, scr.height())
         let maxW = (glyph.maxColumns * glyph.charWitdh) + context.origX
@@ -426,7 +440,7 @@ const context = {
      * @param {HTMLColor} color fill style for 2d context
      * @returns 
      */
-    drawToken(token, x, y, color, zoom = glyph.zoom, charWidth = glyph.charWitdh) {
+    drawToken(token, x, y, color, zoom = glyph.getZoom(), charWidth = glyph.charWitdh) {
         // metrics()
         if (!token || !token.split) {
             return
@@ -556,7 +570,6 @@ const context = {
      * @returns {[]any} [ 0: collision - bool, 1: pos - number ]
      */
     collision(x, y, w, h) {
-        console.log(context.pointer.triggered())
         if (!context.pointer.triggered()) {
             return [false, undefined]
         }
@@ -579,7 +592,7 @@ const context = {
         ctx.fillStyle = "white"
         ctx.textAlign = 'left'
         let header = (new Date).toISOString() + " " +
-            "zoom: " + glyph.zoom.toFixed(2) + "x " +
+            "zoom: " + glyph.getZoom().toFixed(2) + "x " +
             "kerning: " + glyph.kerning.toFixed(2) + "x " +
             "height: " + glyph.lineHeight.toFixed(2) + "x " +
             "size: " + scr.width().toFixed(0) + "x" + scr.height().toFixed(0) + " "
@@ -722,7 +735,7 @@ const context = {
 
         if (context.clickDebug) {
             // debug mouse click
-            let text = context.pointer.x + ', ' + context.pointer.y + ' = ' + context.pointer.triggered()
+            let text = context.pointer.x + ', ' + context.pointer.y + ' = ' + context.pointer.triggered() + ' ' + scr.portrait
             let w = text.length * 10
             ctx.fillStyle = 'black'
             ctx.fillRect(context.pointer.x - (w/2), context.pointer.y - 10, w, 20)
