@@ -3,7 +3,6 @@
 
 var ready = false
 
-
 const qs = (new URLSearchParams(window.location.search))
 
 /**
@@ -154,10 +153,11 @@ const glyphCtl = {
     ffw(ev) {
         context.cursor = context.tokens.length
         context.paused = true
+        if (context.autoscroll) {
+            canvas.height = (glyph.maxLines + 1) * glyph.getZoom() * glyph.charHeight
+            document.getElementById("anchor").scrollIntoView()
+        }
         if (ev && ev.stopPropagation) { ev.stopPropagation() }
-        requestAnimationFrame(_ => {
-            window.scrollTo(0, scr.scrollY())
-        })
     },
     toggle(ev) {
         if (!context.paused) {
@@ -341,7 +341,7 @@ const context = {
     /**
      * current pointer
      * 
-     * @type {boolean}
+     * @type {pointer}
      */
     pointer: new pointer,
     /**
@@ -611,7 +611,7 @@ const context = {
             context.state.EventTimestamp = 0
         }
 
-        const boxes = { "scroll": 60,"play": 60, "skip": 60, "reset": 60, "zoom": 120, "kerning": 120, "height": 120}
+        const boxes = { "scroll": 60, "play": 60, "skip": 60, "reset": 60, "zoom": 120, "kerning": 120, "height": 120 }
         let xbox = 25
         let margin = 40
         for (let [box, w] of Object.entries(boxes)) {
@@ -660,7 +660,6 @@ const context = {
                             glyphCtl.zoomDown()
                         }
                     }
-                    
                     text = `<  ⌕  >`
                     break
                 case "kerning":
@@ -711,7 +710,7 @@ const context = {
                         context.autoscroll = !context.autoscroll
                     }
                     text = "⏻"
-                    foreground = context.autoscroll ? "green" : "gray"
+                    foreground = context.autoscroll && !context.pointer.trigger ? "green" : "gray"
                     touchPos = touchPos === undefined ? undefined : 0
                     break
                 }
@@ -738,7 +737,7 @@ const context = {
             let text = context.pointer.x + ', ' + context.pointer.y + ' = ' + context.pointer.triggered() + ' ' + scr.portrait
             let w = text.length * 10
             ctx.fillStyle = 'black'
-            ctx.fillRect(context.pointer.x - (w/2), context.pointer.y - 10, w, 20)
+            ctx.fillRect(context.pointer.x - (w / 2), context.pointer.y - 10, w, 20)
             ctx.fillStyle = 'yellow'
             ctx.font = '10px "courier new"'
             ctx.fillText(text, context.pointer.x, context.pointer.y)
@@ -819,15 +818,11 @@ const context = {
         let nextThick = interval - elapsed
         context.contextClock = now
         setTimeout(context.main, nextThick > 0 ? nextThick : 0)
-        if (context.paused == false && context.tokens.length > context.cursor && !context.pointer.down && context.autoscroll) {
-            // todo: fix this on mobile.
-            setTimeout(_ => {
-                window.scrollTo({
-                    top: Math.max(scr.scrollY(), canvas.height) + context.origY,
-                    behavior: "smooth"
-                })
-            }, 25)
-
+        if (context.paused == false && context.tokens.length > context.cursor && !context.pointer.trigger && context.autoscroll) {
+            window.scrollTo({
+                top: Math.max(scr.scrollY(), canvas.height) + context.origY,
+                behavior: "smooth"
+            })
         }
     }),
 }
