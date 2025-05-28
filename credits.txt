@@ -1,3 +1,4 @@
+//
 // # About this site
 //
 //   - TL;DR; time waster weekend project.
@@ -11,9 +12,11 @@
 //
 // A single requestAnimationFrame is used, which calls context.advanceFrame, the method 
 // renders all tokens currently on screen,then proceeds to print any remaining tokens.
-//
-// The buttons at the bottom allow you to adjust the glyph configuration, which controls zoom, 
-// kerning (spacing between letters), and line height (spacing between lines).
+// 
+// The buttons at the top allow you to adjust play status and glyph configuration.
+// 
+// In order: auto scroll on/off; play/pause; skip to end; reset glyph, change zoom, 
+// change kerning (spacing between letters), and line height (spacing between lines).
 //
 // If you zoom in a lot, you'll notice some imperfections in my math :)
 //

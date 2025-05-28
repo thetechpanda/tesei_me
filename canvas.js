@@ -60,13 +60,8 @@ const scr = {
     },
 }
 
-window.matchMedia("(orientation: portrait)").addEventListener("change", e => {
-    if (e.matches) {
-        scr.portrait = true
-    } else {
-        scr.portrait = false
-    }
-});
+// detect changes in orientation
+window.matchMedia("(orientation: portrait)").addEventListener("change", e => scr.portrait = e.matches);
 
 
 /**
