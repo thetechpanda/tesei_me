@@ -45,6 +45,7 @@ if (font === false) {
  * unified screen info, forseening issues supporting all browsers.
  */
 const scr = {
+    // todo: use this.
     portrait: window.matchMedia("(orientation: portrait)").matches,
     width() {
         return document.body.getBoundingClientRect().width
@@ -109,9 +110,6 @@ const glyph = (() => {
             g.charWitdh = 8 * (scr.portrait ? zoom : zoom - .5) + kerning
             g.charHeight = 8 * (scr.portrait ? zoom : zoom - .5) + height
         },
-        getZoom() {
-            return (scr.portrait ? glyph.zoom : glyph.zoom - .5)
-        }
     }
     return g
 })()
@@ -149,7 +147,7 @@ const glyphCtl = {
         context.cursor = context.tokens.length
         context.paused = true
         if (context.autoscroll) {
-            canvas.height = (glyph.maxLines + 1) * glyph.getZoom() * glyph.charHeight
+            canvas.height = (glyph.maxLines + 1) * glyph.zoom * glyph.charHeight
             document.getElementById("anchor").scrollIntoView()
         }
         if (ev && ev.stopPropagation) { ev.stopPropagation() }
@@ -258,7 +256,6 @@ class pointer {
         }
         this.x = pointer.x
         this.y = pointer.y
-        console.log('received', evt, this, ev)
         ev.stopPropagation()
     }
     /**
@@ -391,8 +388,8 @@ const context = {
      * updates canvas and clears screen
      */
     resetView() {
-        glyph.charWitdh = 8 * glyph.getZoom() + glyph.kerning
-        glyph.charHeight = 8 * glyph.getZoom() + glyph.lineHeight
+        glyph.charWitdh = 8 * glyph.zoom + glyph.kerning
+        glyph.charHeight = 8 * glyph.zoom + glyph.lineHeight
         var printedLines = this.tokens.filter((v, i) => v == tags.EOL && i < this.cursor).length + 5
         canvas.height = Math.max(printedLines * glyph.charHeight + context.origY, scr.height())
         let maxW = (glyph.maxColumns * glyph.charWitdh) + context.origX
@@ -435,7 +432,7 @@ const context = {
      * @param {HTMLColor} color fill style for 2d context
      * @returns 
      */
-    drawToken(token, x, y, color, zoom = glyph.getZoom(), charWidth = glyph.charWitdh) {
+    drawToken(token, x, y, color, zoom = glyph.zoom, charWidth = glyph.charWitdh) {
         // metrics()
         if (!token || !token.split) {
             return
@@ -587,7 +584,7 @@ const context = {
         ctx.fillStyle = "white"
         ctx.textAlign = 'left'
         let header = (new Date).toISOString() + " " +
-            "zoom: " + glyph.getZoom().toFixed(2) + "x " +
+            "zoom: " + glyph.zoom.toFixed(2) + "x " +
             "kerning: " + glyph.kerning.toFixed(2) + "x " +
             "height: " + glyph.lineHeight.toFixed(2) + "x " +
             "size: " + scr.width().toFixed(0) + "x" + scr.height().toFixed(0) + " "
@@ -616,7 +613,6 @@ const context = {
             let since = (new Date()).getTime() - context.state.EventTimestamp
             if (collide && context.pointer.triggered() && since > 500) {
                 context.state.EventTimestamp = new Date().getTime()
-                console.log(collide, context.pointer.triggered(), since)
             } else {
                 collide = false
             }
